@@ -1,33 +1,69 @@
+import random
+from uuid import uuid4
+
 import uvicorn
 from fastapi import FastAPI
+from mimesis.enums import Gender
+from mimesis.locales import Locale
+from mimesis.providers import Payment, Person
 
-from algorithms.branch_and_bound import BranchAndBound
+from algorithms.binary import Binary
 from algorithms.brute_force import BruteForce
-from data.reader import read_data_from_csv
-from entitites import Point
+from entitites import Client
 
 app = FastAPI(docs_url="/api", redoc_url=None)
 
-
-@app.get("/api/points", tags=["points"])
-def get_points() -> list[Point]:
-    """Получить список координат."""
-    return read_data_from_csv()
+DEFAULT_CLIENT_COUNT: int = 1
+CLIENTS: list["Client"] = []
 
 
-@app.post("/api/points/shortest-path", tags=["points"])
-def find_shortest_path(points: list[Point]) -> list[Point]:
-    """Найти кратчайший путь."""
+@app.get("/api/clients", tags=["clients"])
+def get_clients(client_count: int = DEFAULT_CLIENT_COUNT) -> list[Client]:
+    """Получить список клиентов."""
+    person = Person(locale=Locale.RU)
+    payment = Payment()
+
+    clients: list["Client"] = []
+    for _ in range(client_count):
+        gender = random.choice(list(Gender))
+
+        clients.append(
+            Client(
+                id=uuid4(),
+                name=person.name(gender=gender),
+                surname=person.surname(gender=gender),
+                gender=gender,
+                email=person.email(),
+                phone=person.phone_number(),
+                age=person.age(),
+                credit_card_number=payment.credit_card_number(),
+                credit_card_expiration_date=payment.credit_card_expiration_date(),
+            )
+        )
+
+    global CLIENTS
+    CLIENTS = sorted(clients, key=lambda x: x.surname)
+
+    return CLIENTS[-2:-1]
+
+
+@app.post("/api/clients/find", tags=["clients"])
+def find_client(surname: str) -> Client | None:
+    """Найти клиента по фамилии."""
+
+    print()
+    print("Поиск 'Грубой силой'.")
+    algorithm = BruteForce(clients=CLIENTS)
+    client = algorithm.find(surname=surname)
+
+    print()
+    print("Бинарный поиск")
+    algorithm = Binary(clients=CLIENTS)
+    client = algorithm.find(surname=surname)
     print()
 
-    # shortest_path, min_distance = BruteForce(points=points).find()
-    shortest_path, min_distance = BranchAndBound(points=points).find()
-
-    print(f"Кратчайшее расстояние: {min_distance}")
-    print()
-
-    return shortest_path
+    return client
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8080, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8888, reload=True)

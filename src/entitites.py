@@ -1,8 +1,18 @@
+from uuid import UUID
+
+from mimesis.enums import Gender
 from pydantic import BaseModel
 
 
-class Point(BaseModel):
-    """Схема точки."""
+class Client(BaseModel):
+    """Клиент."""
 
-    x: float
-    y: float
+    id: UUID
+    name: str
+    surname: str
+    gender: Gender
+    email: str
+    phone: str
+    age: int
+    credit_card_number: str
+    credit_card_expiration_date: str
