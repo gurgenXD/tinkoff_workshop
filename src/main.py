@@ -1,3 +1,4 @@
+import json
 import random
 from uuid import uuid4
 
@@ -17,9 +18,9 @@ DEFAULT_CLIENT_COUNT: int = 1
 CLIENTS: list["Client"] = []
 
 
-@app.get("/api/clients", tags=["clients"])
-def get_clients(client_count: int = DEFAULT_CLIENT_COUNT) -> list[Client]:
-    """Получить список клиентов."""
+@app.post("/api/clients", tags=["clients"])
+def generate_clients(client_count: int = DEFAULT_CLIENT_COUNT) -> None:
+    """Сгенерировать список клиентов."""
     person = Person(locale=Locale.RU)
     payment = Payment()
 
@@ -41,24 +42,43 @@ def get_clients(client_count: int = DEFAULT_CLIENT_COUNT) -> list[Client]:
             )
         )
 
-    global CLIENTS
-    CLIENTS = sorted(clients, key=lambda x: x.surname)
+    with open("data.json", mode="w") as file:
+        json.dump(
+            [
+                client.model_dump(mode="json")
+                for client in sorted(clients, key=lambda x: x.surname)
+            ],
+            file,
+        )
 
-    return CLIENTS[-2:-1]
+    return None
 
 
-@app.post("/api/clients/find", tags=["clients"])
-def find_client(surname: str) -> Client | None:
+@app.get("/api/clients", tags=["clients"])
+def get_clients(client_count: int = DEFAULT_CLIENT_COUNT) -> None:
+    """Получить список клиентов."""
+    with open("data.json", mode="r") as file:
+        clients = json.load(file)
+
+    return [Client(**client) for client in clients[:client_count]]
+
+
+@app.post("/api/clients/search", tags=["clients"])
+def search_client(surname: str) -> Client | None:
     """Найти клиента по фамилии."""
+    with open("data.json", mode="r") as file:
+        clients = json.load(file)
+
+    clients = [Client(**client) for client in clients]
 
     print()
-    print("Поиск 'Грубой силой'.")
-    algorithm = BruteForce(clients=CLIENTS)
+    print("Поиск перебором.")
+    algorithm = BruteForce(clients=clients)
     client = algorithm.find(surname=surname)
 
     print()
     print("Бинарный поиск")
-    algorithm = Binary(clients=CLIENTS)
+    algorithm = Binary(clients=clients)
     client = algorithm.find(surname=surname)
     print()
 
