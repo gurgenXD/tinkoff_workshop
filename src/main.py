@@ -3,7 +3,7 @@ import random
 from uuid import uuid4
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from mimesis.enums import Gender
 from mimesis.locales import Locale
 from mimesis.providers import Payment, Person
@@ -11,6 +11,7 @@ from mimesis.providers import Payment, Person
 from algorithms.binary import Binary
 from algorithms.brute_force import BruteForce
 from entitites import Client
+from utils import timeit
 
 app = FastAPI(docs_url="/api", redoc_url=None)
 
@@ -64,25 +65,30 @@ def get_clients(client_count: int = DEFAULT_CLIENT_COUNT) -> None:
 
 
 @app.post("/api/clients/search", tags=["clients"])
-def search_client(surname: str) -> Client | None:
+def search_client(response: Response, surname: str) -> list[Client]:
     """Найти клиента по фамилии."""
+    response.headers["Access-Control-Allow-Origin"] = "*"
+
     with open("data.json", mode="r") as file:
         clients = json.load(file)
 
     clients = [Client(**client) for client in clients]
 
     print()
-    print("Поиск перебором.")
+    clients = run(clients, surname)
+    print()
+
+    return clients
+
+
+@timeit
+def run(clients: list[Client], surname: str) -> list[Client]:
+    """Запустить алгоритм."""
     algorithm = BruteForce(clients=clients)
-    client = algorithm.find(surname=surname)
+    for _ in range(5000):
+        client = algorithm.find(surname=surname)
 
-    print()
-    print("Бинарный поиск")
-    algorithm = Binary(clients=clients)
-    client = algorithm.find(surname=surname)
-    print()
-
-    return client
+    return [client] if client else []
 
 
 if __name__ == "__main__":

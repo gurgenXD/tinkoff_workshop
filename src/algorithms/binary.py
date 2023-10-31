@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from utils import timeit
-
 if TYPE_CHECKING:
     from entitites import Client
 
@@ -13,7 +11,6 @@ class Binary:
 
     clients: list["Client"]
 
-    @timeit
     def find(self, surname: str) -> "Client | None":
         """Нахождение пользователя по фамилии."""
         left, right = 0, len(self.clients) - 1
