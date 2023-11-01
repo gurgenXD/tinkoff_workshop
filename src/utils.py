@@ -7,7 +7,7 @@ def timeit(function):
     def wrapped(*args, **kwargs):
         start_time = time.perf_counter()
         res = function(*args, **kwargs)
-        print(f"Время: {time.perf_counter() - start_time} ns")
+        print(f"Время: {time.perf_counter() - start_time} s")
         return res
 
     return wrapped
